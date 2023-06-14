@@ -36,39 +36,45 @@ const char* pYesNo[] =
     "FEM_ON",
 };
 
+enum eSettingToChange : unsigned char
+{
+    DebugFPS = 0,
+    LimitFPS,
+    BackfaceCulling
+};
+
 char szRetText[8];
-void DebugFPSChanged(int oldVal, int newVal)
+char szFPSText[12];
+void OnSettingChange(int oldVal, int newVal, void* data)
 {
-    pCfgDebugFPS->SetBool(newVal != 0);
-    *(bool*)(pGTASA + 0x98F1AD) = pCfgDebugFPS->GetBool();
+    eSettingToChange set = (eSettingToChange)(int)data; // why do i need to cast it to int first? bruh compiler moment
+    switch(set)
+    {
+        case DebugFPS:
+        {
+            pCfgDebugFPS->SetBool(newVal != 0);
+            *(bool*)(pGTASA + 0x98F1AD) = (newVal != 0);
+            break;
+        }
+        case LimitFPS:
+        {
+            pCfgFPSNew->SetInt(newVal);
+            *(char*)(pGTASA + 0x5E4978) = newVal;
+            *(char*)(pGTASA + 0x5E4990) = newVal;
+            break;
+        }
+        case BackfaceCulling:
+        {
+            pCfgBackfaceCulling->SetInt(newVal);
+            break;
+        }
+    }
     cfg->Save();
 }
-void FPSNewChanged(int oldVal, int newVal)
-{
-    pCfgFPSNew->SetInt(newVal);
-    *(char*)(pGTASA + 0x5E4978) = newVal;
-    *(char*)(pGTASA + 0x5E4990) = newVal;
-    cfg->Save();
-}
-const char* FPSNewDrawed(int newVal)
+const char* OnFPSLimitDraw(int newVal, void* data)
 {
     sprintf(szRetText, "%d", newVal);
     return szRetText;
-}
-void BackfaceCullingChanged(int oldVal, int newVal)
-{
-    pCfgBackfaceCulling->SetInt(newVal);
-    cfg->Save();
-}
-void VehicleBackfaceCullingChanged(int oldVal, int newVal)
-{
-    pCfgVehicleBackfaceCulling->SetInt(newVal);
-    cfg->Save();
-}
-void BreakableBackfaceCullingChanged(int oldVal, int newVal)
-{
-    pCfgBreakableBackfaceCulling->SetInt(newVal);
-    cfg->Save();
 }
 
 DECL_HOOK(void, RwRenderStateSet, int state, int val)
@@ -102,6 +108,7 @@ extern "C" void OnModLoad()
     pGTASA = aml->GetLib("libGTASA.so");
 
     aml->Unprot(pGTASA + 0x98F1AD, sizeof(bool)); // Debug FPS
+    aml->Unprot(pGTASA + 0x3F56A0, 16); SET_TO(szFPSText, pGTASA + 0x3F56A0); // Debug FPS Text
     aml->Unprot(pGTASA + 0x5E4978, sizeof(char)); aml->Unprot(pGTASA + 0x5E4990, sizeof(char)); // FPS
 
     sautils = (ISAUtils*)GetInterface("SAUtils");
@@ -109,21 +116,22 @@ extern "C" void OnModLoad()
     {
         pCfgDebugFPS = cfg->Bind("DebugFPS", *(bool*)(pGTASA + 0x98F1AD), "Tweaks");
         *(bool*)(pGTASA + 0x98F1AD) = pCfgDebugFPS->GetBool();
-        sautils->AddClickableItem(Game, "Debug FPS", pCfgDebugFPS->GetInt(), 0, sizeofA(pYesNo)-1, pYesNo, DebugFPSChanged);
+        sautils->AddClickableItem(SetType_Game, "Debug FPS", pCfgDebugFPS->GetInt(), 0, sizeofA(pYesNo)-1, pYesNo, OnSettingChange, (void*)DebugFPS);
+
 
         pCfgFPSNew = cfg->Bind("FPSNew", 30, "Tweaks");
         *(char*)(pGTASA + 0x5E4978) = pCfgFPSNew->GetInt();
         *(char*)(pGTASA + 0x5E4990) = pCfgFPSNew->GetInt();
-        sautils->AddSliderItem(Game, "FPS Limit", pCfgFPSNew->GetInt(), 20, 120, FPSNewChanged, FPSNewDrawed);
+        sautils->AddSliderItem(SetType_Game, "FPS Limit", pCfgFPSNew->GetInt(), 20, 160, OnSettingChange, OnFPSLimitDraw, (void*)LimitFPS);
 
         // Backface Culling
         pCfgBackfaceCulling = cfg->Bind("DisableBackfaceCulling", false, "Tweaks");
-        sautils->AddClickableItem(Display, "Disable Backface Culling", pCfgBackfaceCulling->GetBool(), 0, sizeofA(pYesNo)-1, pYesNo, BackfaceCullingChanged);
+        sautils->AddClickableItem(SetType_Display, "Disable Backface Culling", pCfgBackfaceCulling->GetBool(), 0, sizeofA(pYesNo)-1, pYesNo, OnSettingChange, (void*)BackfaceCulling);
         HOOKPLT(RwRenderStateSet, pGTASA + 0x6711B8);
 
         // Vehicle Backface Culling
         //pCfgVehicleBackfaceCulling = cfg->Bind("VehicleDisableBackfaceCulling", false, "Tweaks");
-        //sautils->AddSettingsItem(Display, "Disable Backface Culling for Vehicle", pCfgVehicleBackfaceCulling->GetBool(), 0, sizeofA(pYesNo)-1, VehicleBackfaceCullingChanged, false, (void*)pYesNo);
+        //sautils->AddSettingsItem(SetType_Display, "Disable Backface Culling for Vehicle", pCfgVehicleBackfaceCulling->GetBool(), 0, sizeofA(pYesNo)-1, VehicleBackfaceCullingChanged, false, (void*)pYesNo);
         //HOOKPLT(EntityRender, pGTASA + 0x66F764);
     }
 }
