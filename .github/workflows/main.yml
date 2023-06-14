@@ -34,6 +34,10 @@ jobs:
 
     - run: mv ./structs/* ./
 
+    - run: git clone https://github.com/AndroidModLoader/SAUtils ./sautils
+
+    - run: mv ./sautils/isautils.h ./isautils.h
+
     - uses: nttld/setup-ndk@v1
 
       with:
