@@ -25,6 +25,7 @@ bool bForceNoCull = false;
 
 /* Config */
 ConfigEntry* pCfgDebugFPS;
+ConfigEntry* pCfgDebugFPSText;
 ConfigEntry* pCfgFPSNew;
 ConfigEntry* pCfgBackfaceCulling;
 ConfigEntry* pCfgVehicleBackfaceCulling;
@@ -39,6 +40,7 @@ const char* pYesNo[] =
 enum eSettingToChange : unsigned char
 {
     DebugFPS = 0,
+    DebugFPSText,
     LimitFPS,
     BackfaceCulling
 };
@@ -54,6 +56,13 @@ void OnSettingChange(int oldVal, int newVal, void* data)
         {
             pCfgDebugFPS->SetBool(newVal != 0);
             *(bool*)(pGTASA + 0x98F1AD) = (newVal != 0);
+            break;
+        }
+        case DebugFPSText:
+        {
+            pCfgDebugFPSText->SetBool(newVal != 0);
+            szFPSText[0] = 0;
+            strcpy(szFPSText, newVal != 0 ? "%.2f" : "FPS: %.2f");
             break;
         }
         case LimitFPS:
@@ -102,7 +111,7 @@ DECL_HOOK(void, EntityRender, uintptr_t self)
     EntityRender(self);
 }
 
-extern "C" void OnModLoad()
+extern "C" void OnModPreLoad()
 {
     logger->SetTag("GTASA More Settings");
     pGTASA = aml->GetLib("libGTASA.so");
@@ -118,6 +127,13 @@ extern "C" void OnModLoad()
         *(bool*)(pGTASA + 0x98F1AD) = pCfgDebugFPS->GetBool();
         sautils->AddClickableItem(SetType_Game, "Debug FPS", pCfgDebugFPS->GetInt(), 0, sizeofA(pYesNo)-1, pYesNo, OnSettingChange, (void*)DebugFPS);
 
+        pCfgDebugFPSText = cfg->Bind("DebugFPS_NoFPSText", true, "Tweaks");
+        if(pCfgDebugFPSText->GetBool())
+        {
+            szFPSText[0] = 0;
+            strcpy(szFPSText, "%.2f");
+        }
+        sautils->AddClickableItem(SetType_Game, "Show only FPS", pCfgDebugFPSText->GetInt(), 0, sizeofA(pYesNo)-1, pYesNo, OnSettingChange, (void*)DebugFPSText);
 
         pCfgFPSNew = cfg->Bind("FPSNew", 30, "Tweaks");
         *(char*)(pGTASA + 0x5E4978) = pCfgFPSNew->GetInt();
