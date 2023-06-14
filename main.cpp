@@ -8,11 +8,11 @@ namespace fs = std::filesystem;
 
 #define sizeofA(__aVar)  ((int)(sizeof(__aVar)/sizeof(__aVar[0])))
 
-MYMODCFG(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.2, RusJJ)
+MYMODCFG(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.3, RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 BEGIN_DEPLIST()
-    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.0)
-    ADD_DEPENDENCY_VER(net.rusjj.gtasa.utils, 1.1)
+    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.0.2.1)
+    ADD_DEPENDENCY_VER(net.rusjj.gtasa.utils, 1.4.1)
 END_DEPLIST()
 
 /* SA Utils */
@@ -36,9 +36,10 @@ const char* pYesNo[] =
     "FEM_ON",
 };
 
+char szRetText[8];
 void DebugFPSChanged(int oldVal, int newVal)
 {
-    pCfgDebugFPS->SetBool(newVal==0?false:true);
+    pCfgDebugFPS->SetBool(newVal != 0);
     *(bool*)(pGTASA + 0x98F1AD) = pCfgDebugFPS->GetBool();
     cfg->Save();
 }
@@ -49,7 +50,6 @@ void FPSNewChanged(int oldVal, int newVal)
     *(char*)(pGTASA + 0x5E4990) = newVal;
     cfg->Save();
 }
-char szRetText[8];
 const char* FPSNewDrawed(int newVal)
 {
     sprintf(szRetText, "%d", newVal);
