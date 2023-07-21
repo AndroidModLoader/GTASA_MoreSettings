@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 #ifdef AML32
     #define BYVER(__for32, __for64) (__for32)
 #else
-    #include "ARMv8_ASMHelper.h"
+    #include "AArch64_ModHelper/ARMv8_ASMHelper.h"
     #define BYVER(__for32, __for64) (__for64)
 #endif
 
@@ -150,7 +150,7 @@ const char* OnFPSLimitDraw(int newVal, void* data)
     return szRetText;
 }
 
-extern "C" void OnModPreLoad()
+extern "C" void OnModLoad()
 {
     logger->SetTag("GTASA More Settings");
     pGTASA = aml->GetLib("libGTASA.so");
