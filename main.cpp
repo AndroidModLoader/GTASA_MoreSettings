@@ -18,7 +18,7 @@ MYMODCFG(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.3, RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 BEGIN_DEPLIST()
     ADD_DEPENDENCY_VER(net.rusjj.aml, 1.0.2.1)
-    ADD_DEPENDENCY_VER(net.rusjj.gtasa.utils, 1.5)
+    ADD_DEPENDENCY_VER(net.rusjj.gtasa.utils, 1.4)
 END_DEPLIST()
 
 /* SA Utils */
@@ -63,10 +63,8 @@ uintptr_t TopLeftValue_BackTo;
 __attribute__((optnone)) __attribute__((naked)) void TopLeftValue_Inject(void)
 {
     asm("LDR S3, [X9,#0x148]\nLDP S1, S2, [X8,#8]");
-    //asm("STR X8, [SP, #-16]!");
     asm("FMOV S4, #4.0");
     asm volatile("MOV X8, %0\n" :: "r"(TopLeftValue_BackTo));
-    //asm("LDR X8, [SP], #16");
     asm("BR X8");
 }
 #endif
@@ -110,7 +108,7 @@ void OnSettingChange(int oldVal, int newVal, void* data)
                 }
                 else
                 {
-                    aml->Write(pGTASA + 0x4D7B20, (uintptr_t)"\x0A\x13\x00\xF0\x23\x49\x41\xBD\x01\x09\x41\x2D\x44\x25\x4C\xBD", 16);
+                    aml->Write(pGTASA + 0x4D7B20, "\x0A\x13\x00\xF0\x23\x49\x41\xBD\x01\x09\x41\x2D\x44\x25\x4C\xBD", 16);
                 }
             #endif
             break;
@@ -123,8 +121,8 @@ void OnSettingChange(int oldVal, int newVal, void* data)
                 *(char*)(pGTASA + 0x5E4990) = newVal;
             #else
                 uint32_t limitValASM = MOVBits::Create(newVal, 9, false);
-                aml->Write(pGTASA + 0x70A38C, (uintptr_t)&limitValASM, sizeof(uint32_t));
-                aml->Write(pGTASA + 0x70A458, (uintptr_t)&limitValASM, sizeof(uint32_t));
+                aml->Write32(pGTASA + 0x70A38C, limitValASM);
+                aml->Write32(pGTASA + 0x70A458, limitValASM);
             #endif
             break;
         }
@@ -138,7 +136,7 @@ void OnSettingChange(int oldVal, int newVal, void* data)
                     break;
 
                 default:
-                    aml->Write(pGTASA + BYVER(0x3E3378, 0x4C20A4), (uintptr_t)BYVER("\xD0\xB5", "\xF7\x0F\x1C\xF8"), BYVER(2, 4));
+                    aml->Write(pGTASA + BYVER(0x3E3378, 0x4C20A4), BYVER("\xD0\xB5", "\xF7\x0F\x1C\xF8"), BYVER(2, 4));
                     break;
             }
             break;
