@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
     #define BYVER(__for32, __for64) (__for64)
 #endif
 
-MYMOD(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.4, RusJJ)
+MYMOD(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.5, RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 BEGIN_DEPLIST()
     ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2)
@@ -36,6 +36,7 @@ int debugTopleft = 0;
 int fpsLimit = 30;
 int freezeTime = 0;
 int sensi = 18;
+int radarMenuMode = 0;
 
 const char* pYesNo[] = 
 {
@@ -50,6 +51,13 @@ const char* pFPSToggler[] =
     "Show as '60.00'",
     "Show as '60'",
 };
+const char* pRadarMenuToggler[] = 
+{
+    "FEM_ON",
+    "Disable click",
+    "Disable holding",
+    "FEM_OFF",
+};
 
 enum eSettingToChange : unsigned char
 {
@@ -57,7 +65,10 @@ enum eSettingToChange : unsigned char
     DebugFPSTopLeft,
     LimitFPS,
     Sensitivity,
-    FreezeTime
+    FreezeTime,
+    RadarMenuBehaviour,
+    
+    SettingsMax
 };
 
 /* Patches */
@@ -151,6 +162,12 @@ void OnSettingChange(int oldVal, int newVal, void* data)
             *m_fMouseAccelHorzntl = 0.001f + (float)newVal / 3000.0f; // for CLEO+
             break;
         }
+        case RadarMenuBehaviour:
+        {
+            aml->MLSSetInt("MORSRDRM", newVal);
+            
+            break;
+        }
 
         default: return;
     }
@@ -167,7 +184,9 @@ extern "C" void OnModLoad()
     pGTASA = aml->GetLib("libGTASA.so");
     hGTASA = aml->GetLibHandle("libGTASA.so");
 
-    bSAMPMode = (aml->GetLibHandle("libsamp.so") != NULL || aml->GetLibHandle("libvoice.so") != NULL || aml->GetLibHandle("libAlyn_SAMPMOBILE.so") != NULL || aml->HasMod("net.rusjj.resamp"));
+    bSAMPMode = (aml->GetLibHandle("libsamp.so") != NULL || aml->GetLibHandle("libvoice.so") != NULL ||
+                 aml->GetLibHandle("libAlyn_SAMPMOBILE.so") != NULL || aml->HasMod("net.rusjj.resamp") ||
+                 aml->GetLibHandle("libSAMP.so") != NULL || aml->GetLibHandle("libbass.so") != NULL);
 
     aml->Unprot(pGTASA + BYVER(0x98F1AD, 0xC1DF01), sizeof(bool)); // Debug FPS
     aml->Unprot(pGTASA + BYVER(0x3F56A0, 0x750347), 10);
@@ -205,5 +224,9 @@ extern "C" void OnModLoad()
         aml->Unprot(pGTASA + BYVER(0x6A9F30, 0x885534), sizeof(float));
         sautils->AddSliderItem(SetType_Controller, "Touch Sensitivity", 18, 0, 100, OnSettingChange, NULL, (void*)Sensitivity);
         OnSettingChange(18, sensi, (void*)Sensitivity);
+        
+        aml->MLSGetInt("MORSRDRM", &radarMenuMode); clampint(0, 3, &radarMenuMode);
+        OnSettingChange(0, radarMenuMode, (void*)RadarMenuBehaviour);
+        sautils->AddClickableItem(SetType_Game, "Radar-menu Click", radarMenuMode, 0, sizeofA(pRadarMenuToggler)-1, pRadarMenuToggler, OnSettingChange, (void*)RadarMenuBehaviour);
     }
 }
