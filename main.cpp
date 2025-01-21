@@ -7,10 +7,10 @@ namespace fs = std::filesystem;
 
 #define sizeofA(__aVar)  ((int)(sizeof(__aVar)/sizeof(__aVar[0])))
 #ifdef AML32
-    #define BYVER(__for32, __for64) (__for32)
+    #include "GTASA_STRUCTS.h"
 #else
     #include "AArch64_ModHelper/ARMv8_ASMHelper.h"
-    #define BYVER(__for32, __for64) (__for64)
+    #include "GTASA_STRUCTS_210.h"
 #endif
 
 MYMOD(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.5, RusJJ)
@@ -29,6 +29,9 @@ uintptr_t pGTASA = 0;
 void* hGTASA = NULL;
 bool bSAMPMode = false; // Some settings are not safe for SAMP
 float *m_fMouseAccelHorzntl;
+CWidget** m_pWidgets;
+int (*LIB_KeyboardState)(int);
+bool (*TouchInterface_IsReleased)(int, CVector2D*, int);
 
 /* Config */
 int debugLvl = 0;
@@ -54,8 +57,6 @@ const char* pFPSToggler[] =
 const char* pRadarMenuToggler[] = 
 {
     "FEM_ON",
-    "Disable click",
-    "Disable holding",
     "FEM_OFF",
 };
 
@@ -92,20 +93,20 @@ void OnSettingChange(int oldVal, int newVal, void* data)
         case DebugFPS:
         {
             aml->MLSSetInt("MORSDBGLVL", newVal);
-            *(bool*)(pGTASA + BYVER(0x98F1AD, 0xC1DF01)) = (newVal != 0);
+            *(bool*)(pGTASA + BYBIT(0x98F1AD, 0xC1DF01)) = (newVal != 0);
             switch(newVal)
             {
                 case 1:
-                    strcpy((char*)(pGTASA + BYVER(0x3F56A0, 0x750347)), "FPS: %.2f");
+                    strcpy((char*)(pGTASA + BYBIT(0x3F56A0, 0x750347)), "FPS: %.2f");
                     break;
                 case 2:
-                    strcpy((char*)(pGTASA + BYVER(0x3F56A0, 0x750347)), "FPS: %.0f");
+                    strcpy((char*)(pGTASA + BYBIT(0x3F56A0, 0x750347)), "FPS: %.0f");
                     break;
                 case 3:
-                    strcpy((char*)(pGTASA + BYVER(0x3F56A0, 0x750347)), "%.2f");
+                    strcpy((char*)(pGTASA + BYBIT(0x3F56A0, 0x750347)), "%.2f");
                     break;
                 case 4:
-                    strcpy((char*)(pGTASA + BYVER(0x3F56A0, 0x750347)), "%.0f");
+                    strcpy((char*)(pGTASA + BYBIT(0x3F56A0, 0x750347)), "%.0f");
                     break;
             }
             break;
@@ -146,11 +147,11 @@ void OnSettingChange(int oldVal, int newVal, void* data)
             switch(newVal)
             {
                 case 0:
-                    aml->PlaceRET(pGTASA + BYVER(0x3E3378, 0x4C20A4));
+                    aml->PlaceRET(pGTASA + BYBIT(0x3E3378, 0x4C20A4));
                     break;
 
                 default:
-                    aml->Write(pGTASA + BYVER(0x3E3378, 0x4C20A4), BYVER("\xD0\xB5", "\xF7\x0F\x1C\xF8"), BYVER(2, 4));
+                    aml->Write(pGTASA + BYBIT(0x3E3378, 0x4C20A4), BYBIT("\xD0\xB5", "\xF7\x0F\x1C\xF8"), BYBIT(2, 4));
                     break;
             }
             break;
@@ -158,14 +159,14 @@ void OnSettingChange(int oldVal, int newVal, void* data)
         case Sensitivity:
         {
             aml->MLSSetInt("MORSSENSI", newVal);
-            *(float*)(pGTASA + BYVER(0x6A9F30, 0x885534)) = 0.001f + (float)newVal / 3000.0f;
+            *(float*)(pGTASA + BYBIT(0x6A9F30, 0x885534)) = 0.001f + (float)newVal / 3000.0f;
             *m_fMouseAccelHorzntl = 0.001f + (float)newVal / 3000.0f; // for CLEO+
             break;
         }
         case RadarMenuBehaviour:
         {
             aml->MLSSetInt("MORSRDRM", newVal);
-            
+            radarMenuMode = newVal;
             break;
         }
 
@@ -178,7 +179,17 @@ const char* OnFPSLimitDraw(int newVal, void* data)
     return szRetText;
 }
 
-extern "C" void OnModLoad()
+DECL_HOOK(bool, GetEscapeJustDown, CPad* self)
+{
+    if(radarMenuMode == 1)
+    {
+        TouchInterface_IsReleased(161, NULL, 1); // does its own logic to show widget &etc
+        return (LIB_KeyboardState(0) == 0);
+    }
+    return GetEscapeJustDown(self);
+}
+
+extern "C" void OnAllModsLoaded()
 {
     logger->SetTag("GTASA More Settings");
     pGTASA = aml->GetLib("libGTASA.so");
@@ -188,8 +199,8 @@ extern "C" void OnModLoad()
                  aml->GetLibHandle("libAlyn_SAMPMOBILE.so") != NULL || aml->HasMod("net.rusjj.resamp") ||
                  aml->GetLibHandle("libSAMP.so") != NULL || aml->GetLibHandle("libbass.so") != NULL);
 
-    aml->Unprot(pGTASA + BYVER(0x98F1AD, 0xC1DF01), sizeof(bool)); // Debug FPS
-    aml->Unprot(pGTASA + BYVER(0x3F56A0, 0x750347), 10);
+    aml->Unprot(pGTASA + BYBIT(0x98F1AD, 0xC1DF01), sizeof(bool)); // Debug FPS
+    aml->Unprot(pGTASA + BYBIT(0x3F56A0, 0x750347), 10);
     #ifdef AML32
         aml->Unprot(pGTASA + 0x5E4978, sizeof(char)); aml->Unprot(pGTASA + 0x5E4990, sizeof(char)); // FPS
         aml->Unprot(pGTASA + 0x3F56B8, sizeof(float));
@@ -199,7 +210,17 @@ extern "C" void OnModLoad()
 
     sautils = (ISAUtils*)GetInterface("SAUtils");
     if(sautils != NULL)
-    {
+    {   
+        SET_TO(m_fMouseAccelHorzntl,    aml->GetSym(hGTASA,"_ZN7CCamera20m_fMouseAccelHorzntlE"));
+        SET_TO(m_pWidgets,              *(void**)(pGTASA + BYBIT(0x67947C, 0x850910)));
+        SET_TO(LIB_KeyboardState,       aml->GetSym(hGTASA,"_Z17LIB_KeyboardState13OSKeyboardKey"));
+        SET_TO(TouchInterface_IsReleased, aml->GetSym(hGTASA,"_ZN15CTouchInterface10IsReleasedENS_9WidgetIDsEP9CVector2Di"));
+
+        //HOOKPLT(AnyWidgetsUsingAltBack, pGTASA + BYBIT(0x6702B0, 0x840868));
+        HOOKPLT(GetEscapeJustDown,      pGTASA + BYBIT(0x66EAA4, 0x83E130));
+
+        ///////
+
         aml->MLSGetInt("MORSDBGLVL", &debugLvl); clampint(0, 4, &debugLvl);
         if(debugLvl != 0) OnSettingChange(0, debugLvl, (void*)DebugFPS);
         sautils->AddClickableItem(SetType_Game, "Show FPS", debugLvl, 0, sizeofA(pFPSToggler)-1, pFPSToggler, OnSettingChange, (void*)DebugFPS);
@@ -220,12 +241,11 @@ extern "C" void OnModLoad()
         }
 
         aml->MLSGetInt("MORSSENSI", &sensi); clampint(0, 100, &sensi);
-        SET_TO(m_fMouseAccelHorzntl,aml->GetSym(hGTASA,"_ZN7CCamera20m_fMouseAccelHorzntlE"));
-        aml->Unprot(pGTASA + BYVER(0x6A9F30, 0x885534), sizeof(float));
+        aml->Unprot(pGTASA + BYBIT(0x6A9F30, 0x885534), sizeof(float));
         sautils->AddSliderItem(SetType_Controller, "Touch Sensitivity", 18, 0, 100, OnSettingChange, NULL, (void*)Sensitivity);
         OnSettingChange(18, sensi, (void*)Sensitivity);
         
-        aml->MLSGetInt("MORSRDRM", &radarMenuMode); clampint(0, 3, &radarMenuMode);
+        aml->MLSGetInt("MORSRDRM", &radarMenuMode); clampint(0, 1, &radarMenuMode);
         OnSettingChange(0, radarMenuMode, (void*)RadarMenuBehaviour);
         sautils->AddClickableItem(SetType_Game, "Radar-menu Click", radarMenuMode, 0, sizeofA(pRadarMenuToggler)-1, pRadarMenuToggler, OnSettingChange, (void*)RadarMenuBehaviour);
     }
