@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
     #include "GTASA_STRUCTS_210.h"
 #endif
 
-MYMOD(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.5, RusJJ)
+MYMOD(net.rusjj.gtasa.moresettings, GTA:SA More Settings, 1.6, RusJJ)
 NEEDGAME(com.rockstargames.gtasa)
 BEGIN_DEPLIST()
     ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2)
@@ -202,7 +202,8 @@ extern "C" void OnAllModsLoaded()
     aml->Unprot(pGTASA + BYBIT(0x98F1AD, 0xC1DF01), sizeof(bool)); // Debug FPS
     aml->Unprot(pGTASA + BYBIT(0x3F56A0, 0x750347), 10);
     #ifdef AML32
-        aml->Unprot(pGTASA + 0x5E4978, sizeof(char)); aml->Unprot(pGTASA + 0x5E4990, sizeof(char)); // FPS
+        aml->Unprot(pGTASA + 0x5E4978, sizeof(char));
+        aml->Unprot(pGTASA + 0x5E4990, sizeof(char)); // FPS
         aml->Unprot(pGTASA + 0x3F56B8, sizeof(float));
     #else
         TopLeftValue_BackTo = pGTASA + 0x4D7B30;
@@ -242,7 +243,7 @@ extern "C" void OnAllModsLoaded()
 
         aml->MLSGetInt("MORSSENSI", &sensi); clampint(0, 100, &sensi);
         aml->Unprot(pGTASA + BYBIT(0x6A9F30, 0x885534), sizeof(float));
-        sautils->AddSliderItem(SetType_Controller, "Touch Sensitivity", 18, 0, 100, OnSettingChange, NULL, (void*)Sensitivity);
+        sautils->AddSliderItem(SetType_Controller, "Touch Sensitivity", sensi, 0, 100, OnSettingChange, NULL, (void*)Sensitivity);
         OnSettingChange(18, sensi, (void*)Sensitivity);
         
         aml->MLSGetInt("MORSRDRM", &radarMenuMode); clampint(0, 1, &radarMenuMode);
